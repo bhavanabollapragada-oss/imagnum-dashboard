@@ -151,24 +151,9 @@ function setStatus(msg) { const e=document.getElementById('loading-status'); if(
    CHART.JS GLOBAL DEFAULTS
 ════════════════════════════════════════ */
 function applyChartDefaults() {
-  const dark=document.documentElement.dataset.theme==='dark';
-  const grid=dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
-  const txt =dark?'#94a3b8':'#475569';
-  Chart.defaults.color=txt;
-  Chart.defaults.font.family="'Inter',sans-serif";
-  Chart.defaults.font.size=12;
-  Chart.defaults.plugins.legend.labels.usePointStyle=true;
-  Chart.defaults.plugins.legend.labels.pointStyleWidth=8;
-  Chart.defaults.plugins.legend.labels.padding=14;
-  Chart.defaults.plugins.tooltip.backgroundColor=dark?'#1e2533':'#0f172a';
-  Chart.defaults.plugins.tooltip.titleColor='#f1f5f9';
-  Chart.defaults.plugins.tooltip.bodyColor='#94a3b8';
-  Chart.defaults.plugins.tooltip.borderColor=dark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)';
-  Chart.defaults.plugins.tooltip.borderWidth=1;
-  Chart.defaults.plugins.tooltip.padding=12;
-  Chart.defaults.plugins.tooltip.cornerRadius=8;
-  Chart.defaults.scale.grid={color:grid,drawBorder:false};
-  Chart.defaults.scale.ticks={color:txt};
+  /* Intentionally empty — Chart.js 4.4.x has a Proxy recursion bug
+     triggered by ANY modification to Chart.defaults when axes are present.
+     All styling is passed inline per-chart via lineOpts(). */
 }
 const CHARTS={};
 function makeChart(id,cfg) {
@@ -746,12 +731,34 @@ document.addEventListener('click',e=>{
    CHART HELPERS
 ════════════════════════════════════════ */
 function lineOpts(extra={}){
+  const dark=document.documentElement.dataset.theme==='dark';
+  const gridColor=dark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
+  const tickColor=dark?'#94a3b8':'#475569';
+  const tooltipBg=dark?'#1e2533':'#0f172a';
+  const borderCol=dark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)';
   const{scales={},plugins={}, ...rest}=extra;
+  const baseX={grid:{display:false},ticks:{maxRotation:0,color:tickColor}};
+  const baseY={grid:{color:gridColor,drawBorder:false},ticks:{color:tickColor,callback:v=>fmtUSD(v,true)}};
+  const mergedScales={};
+  const allKeys=new Set(['x','y',...Object.keys(scales)]);
+  allKeys.forEach(k=>{
+    const base=k==='x'?baseX:k==='y'?baseY:{};
+    const ov=scales[k]||{};
+    mergedScales[k]={
+      ...base,...ov,
+      grid:{...base.grid,...(ov.grid||{})},
+      ticks:{...base.ticks,...(ov.ticks||{})}
+    };
+  });
   return{
     responsive:true,maintainAspectRatio:false,
     interaction:{mode:'index',intersect:false},
-    plugins:{legend:{position:'top',align:'end'},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmtUSD(c.raw)}`}},...plugins},
-    scales:{x:{grid:{display:false},ticks:{maxRotation:0}},y:{ticks:{callback:v=>fmtUSD(v,true)}},...scales},
+    plugins:{
+      legend:{position:'top',align:'end',labels:{usePointStyle:true,pointStyleWidth:8,padding:14,color:tickColor}},
+      tooltip:{backgroundColor:tooltipBg,titleColor:'#f1f5f9',bodyColor:'#94a3b8',borderColor:borderCol,borderWidth:1,padding:12,cornerRadius:8,callbacks:{label:c=>` ${c.dataset.label}: ${fmtUSD(c.raw)}`}},
+      ...plugins
+    },
+    scales:mergedScales,
     ...rest
   };
 }

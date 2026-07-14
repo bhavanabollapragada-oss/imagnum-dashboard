@@ -10,6 +10,97 @@
 </head>
 <body>
 
+<!-- ═══════════════════ PASSWORD GATE ═══════════════════ -->
+<div id="password-gate" style="
+  position:fixed;inset:0;z-index:99999;
+  background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);
+  display:flex;align-items:center;justify-content:center;
+">
+  <div style="
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:20px;padding:48px 40px;
+    width:min(420px,90vw);text-align:center;
+    backdrop-filter:blur(16px);
+    box-shadow:0 25px 60px rgba(0,0,0,0.5);
+  ">
+    <div style="
+      width:60px;height:60px;border-radius:15px;
+      background:linear-gradient(135deg,#2563eb,#7c3aed);
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;font-weight:800;color:#fff;
+      margin:0 auto 20px;letter-spacing:-1px;
+      box-shadow:0 0 30px rgba(37,99,235,0.4);
+    ">iM</div>
+    <h2 style="color:#f1f5f9;font-size:20px;font-weight:700;margin-bottom:6px;font-family:'Inter',sans-serif;">iMagnum FP&amp;A Dashboard</h2>
+    <p style="color:#64748b;font-size:13px;margin-bottom:32px;font-family:'Inter',sans-serif;">Enter your access password to continue</p>
+    <input id="pw-input" type="password" placeholder="Password" autocomplete="current-password" style="
+      width:100%;height:46px;border-radius:10px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(255,255,255,0.06);
+      color:#f1f5f9;font-size:15px;
+      padding:0 16px;outline:none;
+      font-family:'Inter',sans-serif;
+      transition:border-color 0.2s;
+      box-sizing:border-box;
+    " />
+    <div id="pw-error" style="
+      color:#f87171;font-size:12px;margin-top:8px;
+      min-height:18px;font-family:'Inter',sans-serif;
+    "></div>
+    <button id="pw-btn" onclick="checkPassword()" style="
+      width:100%;height:46px;margin-top:16px;
+      background:linear-gradient(135deg,#2563eb,#7c3aed);
+      color:#fff;font-size:14px;font-weight:600;
+      border:none;border-radius:10px;cursor:pointer;
+      font-family:'Inter',sans-serif;
+      transition:opacity 0.2s;
+      box-shadow:0 4px 15px rgba(37,99,235,0.4);
+    ">Unlock Dashboard</button>
+    <p style="color:#1e293b;font-size:11px;margin-top:24px;font-family:'Inter',sans-serif;">
+      🔒 Access restricted · iMagnum Healthcare
+    </p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const SESSION_KEY='imag_auth';
+  if(sessionStorage.getItem(SESSION_KEY)==='1'){
+    document.getElementById('password-gate').style.display='none';
+  }
+  document.getElementById('pw-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter') checkPassword();
+  });
+  document.getElementById('pw-input').addEventListener('focus',function(){
+    this.style.borderColor='rgba(37,99,235,0.6)';
+    this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.2)';
+  });
+  document.getElementById('pw-input').addEventListener('blur',function(){
+    this.style.borderColor='rgba(255,255,255,0.12)';
+    this.style.boxShadow='none';
+  });
+  window.checkPassword=function(){
+    const val=document.getElementById('pw-input').value;
+    const err=document.getElementById('pw-error');
+    const btn=document.getElementById('pw-btn');
+    if(val==='iMagnum2026'){
+      sessionStorage.setItem(SESSION_KEY,'1');
+      const gate=document.getElementById('password-gate');
+      gate.style.transition='opacity 0.4s';
+      gate.style.opacity='0';
+      setTimeout(()=>gate.style.display='none',400);
+    } else {
+      err.textContent='Incorrect password. Please try again.';
+      document.getElementById('pw-input').style.borderColor='rgba(248,113,113,0.6)';
+      document.getElementById('pw-input').style.boxShadow='0 0 0 3px rgba(248,113,113,0.15)';
+      btn.style.opacity='0.7';
+      setTimeout(()=>{btn.style.opacity='1';},300);
+    }
+  };
+})();
+</script>
+
 <!-- ═══════════════════ LOADING SCREEN ═══════════════════ -->
 <div id="loading-screen">
   <div class="loading-content">
@@ -533,7 +624,7 @@
 </div>
 <div id="drilldown-overlay" class="drilldown-overlay" style="display:none"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="app.js"></script>
 </body>
