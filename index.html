@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iMagnum FP&amp;A Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ═══════════════════ LOADING SCREEN ═══════════════════ -->
+<div id="loading-screen">
+  <div class="loading-content">
+    <div class="loading-brand">
+      <div class="loading-logo">iM</div>
+      <div class="loading-brand-text">
+        <div class="loading-name">iMagnum Healthcare</div>
+        <div class="loading-sub">FP&amp;A Analytics Dashboard</div>
+      </div>
+    </div>
+    <div class="loading-bars">
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+      <div class="loading-bar"></div>
+    </div>
+    <div class="loading-status" id="loading-status">Initialising…</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ APP SHELL ═══════════════════ -->
+<div id="app" class="app-hidden">
+
+  <!-- ── SIDEBAR ── -->
+  <nav id="sidebar" class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-brand">
+        <div class="brand-mark">iM</div>
+        <div class="brand-text">
+          <span class="brand-name">iMagnum</span>
+          <span class="brand-tag">FP&amp;A · 2026</span>
+        </div>
+        <button id="sidebar-close" class="sidebar-close" aria-label="Close sidebar">✕</button>
+      </div>
+
+      <nav class="nav-menu" role="navigation">
+        <div class="nav-section-label">Analytics</div>
+        <button class="nav-item active" data-page="executive">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+          </span>
+          <span class="nav-label">Executive Dashboard</span>
+          <span class="nav-badge">Live</span>
+        </button>
+        <button class="nav-item" data-page="pl">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10,9 9,9 8,9"/>
+            </svg>
+          </span>
+          <span class="nav-label">P&amp;L Dashboard</span>
+        </button>
+        <button class="nav-item" data-page="expense">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </span>
+          <span class="nav-label">Expense Analysis</span>
+        </button>
+        <button class="nav-item" data-page="budget">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+            </svg>
+          </span>
+          <span class="nav-label">Budget vs Actual</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="data-freshness" id="data-freshness">
+        <span class="freshness-dot"></span>
+        <span id="freshness-text">Data loaded</span>
+      </div>
+      <button id="theme-toggle" class="theme-btn">
+        <span class="theme-icon-light">☀️</span>
+        <span class="theme-icon-dark">🌙</span>
+        <span class="theme-label">Toggle theme</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Overlay for mobile sidebar -->
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- ── MAIN ── -->
+  <div class="main-wrap">
+
+    <!-- Sticky Header -->
+    <header class="topbar" id="topbar">
+      <div class="topbar-left">
+        <button id="menu-toggle" class="icon-btn" aria-label="Toggle menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="breadcrumb">
+          <span class="breadcrumb-org">iMagnum Healthcare</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-page" id="breadcrumb-page">Executive Dashboard</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-box">
+          <svg class="search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input type="text" id="global-search" placeholder="Search P&amp;L, expenses, accounts…" autocomplete="off" />
+          <div id="search-dropdown" class="search-dropdown"></div>
+        </div>
+        <div class="topbar-actions">
+          <button class="action-btn" id="btn-export-pdf" title="Export PDF">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            PDF
+          </button>
+          <button class="action-btn" id="btn-export-excel" title="Export Excel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+            </svg>
+            Excel
+          </button>
+          <button class="action-btn" id="btn-print" title="Print">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6,9 6,2 18,2 18,9"/>
+              <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            Print
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ══════════════ PAGES ══════════════ -->
+    <main class="page-container" id="page-container">
+
+      <!-- ─────────── PAGE 1: EXECUTIVE DASHBOARD ─────────── -->
+      <section id="page-executive" class="page active" data-title="Executive Dashboard">
+        <div class="page-hero">
+          <div class="page-hero-left">
+            <h1 class="page-title">Executive Dashboard</h1>
+            <p class="page-subtitle">Consolidated financial performance · USD · <span id="exec-date-range">Jan – May 2026</span></p>
+          </div>
+          <div class="page-hero-controls">
+            <label class="ctrl-label">View period</label>
+            <select id="exec-period-select" class="ctrl-select">
+              <option value="latest">Latest Month</option>
+              <option value="all" selected>YTD (All Months)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="kpi-row" id="kpi-row">
+          <div class="kpi-card" id="kpi-revenue">
+            <div class="kpi-top">
+              <div class="kpi-icon kpi-blue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                </svg>
+              </div>
+              <span class="kpi-label">Total Revenue</span>
+            </div>
+            <div class="kpi-main-value" id="v-revenue">—</div>
+            <div class="kpi-foot">
+              <span class="kpi-badge" id="b-revenue">—</span>
+              <span class="kpi-sub-label">MoM change</span>
+            </div>
+            <canvas id="spark-revenue" class="sparkline-canvas"></canvas>
+          </div>
+          <div class="kpi-card" id="kpi-gp">
+            <div class="kpi-top">
+              <div class="kpi-icon kpi-green">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="22,7 13.5,15.5 8.5,10.5 2,17"/>
+                  <polyline points="16,7 22,7 22,13"/>
+                </svg>
+              </div>
+              <span class="kpi-label">Gross Profit</span>
+            </div>
+            <div class="kpi-main-value" id="v-gp">—</div>
+            <div class="kpi-foot">
+              <span class="kpi-badge" id="b-gp">—</span>
+              <span class="kpi-sub-label">MoM change</span>
+            </div>
+            <canvas id="spark-gp" class="sparkline-canvas"></canvas>
+          </div>
+          <div class="kpi-card" id="kpi-ebitda">
+            <div class="kpi-top">
+              <div class="kpi-icon kpi-purple">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+              </div>
+              <span class="kpi-label">EBITDA</span>
+            </div>
+            <div class="kpi-main-value" id="v-ebitda">—</div>
+            <div class="kpi-foot">
+              <span class="kpi-badge" id="b-ebitda">—</span>
+              <span class="kpi-sub-label">MoM change</span>
+            </div>
+            <canvas id="spark-ebitda" class="sparkline-canvas"></canvas>
+          </div>
+          <div class="kpi-card" id="kpi-pbt">
+            <div class="kpi-top">
+              <div class="kpi-icon kpi-orange">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                </svg>
+              </div>
+              <span class="kpi-label">Net Profit (PBT)</span>
+            </div>
+            <div class="kpi-main-value" id="v-pbt">—</div>
+            <div class="kpi-foot">
+              <span class="kpi-badge" id="b-pbt">—</span>
+              <span class="kpi-sub-label">MoM change</span>
+            </div>
+            <canvas id="spark-pbt" class="sparkline-canvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Margin Strips -->
+        <div class="margin-strips" id="margin-strips">
+          <div class="margin-strip">
+            <span class="ms-label">Gross Margin</span>
+            <div class="ms-bar-wrap"><div class="ms-bar" id="ms-gm" style="width:0%"></div></div>
+            <span class="ms-value" id="ms-gm-val">—</span>
+          </div>
+          <div class="margin-strip">
+            <span class="ms-label">EBITDA Margin</span>
+            <div class="ms-bar-wrap"><div class="ms-bar ms-bar-purple" id="ms-ebitda" style="width:0%"></div></div>
+            <span class="ms-value" id="ms-ebitda-val">—</span>
+          </div>
+          <div class="margin-strip">
+            <span class="ms-label">Net Margin</span>
+            <div class="ms-bar-wrap"><div class="ms-bar ms-bar-orange" id="ms-net" style="width:0%"></div></div>
+            <span class="ms-value" id="ms-net-val">—</span>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid-exec">
+          <div class="chart-card span-2">
+            <div class="chart-card-header">
+              <h3>Revenue &amp; Gross Profit Trend</h3>
+              <span class="chart-sub">Monthly · USD</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-rev-trend"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Expense Distribution</h3>
+              <span class="chart-sub">Latest Month</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-exp-dist"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Revenue → Net Profit</h3>
+              <span class="chart-sub" id="waterfall-label">Waterfall</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-waterfall"></canvas>
+            </div>
+          </div>
+          <div class="chart-card span-2">
+            <div class="chart-card-header">
+              <h3>EBITDA Monthly Performance</h3>
+              <span class="chart-sub">Absolute &amp; Margin %</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-ebitda-perf"></canvas>
+            </div>
+          </div>
+          <div class="chart-card span-3">
+            <div class="chart-card-header">
+              <h3>Monthly Margin Trends</h3>
+              <span class="chart-sub">GM% · EBITDA% · Net%</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-margin-trend"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─────────── PAGE 2: P&L DASHBOARD ─────────── -->
+      <section id="page-pl" class="page" data-title="P&amp;L Dashboard">
+        <div class="page-hero">
+          <div class="page-hero-left">
+            <h1 class="page-title">P&amp;L Dashboard</h1>
+            <p class="page-subtitle">India · US · Consolidated · USD whole numbers</p>
+          </div>
+          <div class="page-hero-controls">
+            <label class="ctrl-label">Select Month</label>
+            <select id="pl-month-select" class="ctrl-select"></select>
+          </div>
+        </div>
+
+        <!-- P&L Summary Chips -->
+        <div class="pl-chips" id="pl-chips"></div>
+
+        <!-- P&L Table -->
+        <div class="data-card">
+          <div class="data-card-header">
+            <div>
+              <h3>Profit &amp; Loss Statement</h3>
+              <span class="data-card-sub" id="pl-table-period">—</span>
+            </div>
+            <div class="table-search-wrap">
+              <input type="text" id="pl-table-search" placeholder="Filter rows…" class="table-search" />
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="fin-table" id="pl-table">
+              <thead>
+                <tr>
+                  <th class="col-particulars">Particulars</th>
+                  <th class="col-num">India</th>
+                  <th class="col-num">US</th>
+                  <th class="col-num highlight-col">Consolidated</th>
+                </tr>
+              </thead>
+              <tbody id="pl-tbody">
+                <tr><td colspan="4" class="table-placeholder">Select a month to load P&amp;L data</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- P&L Charts -->
+        <div class="charts-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Revenue vs Cost vs Gross Profit</h3>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-pl-bar"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Cost Structure Breakdown</h3>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-pl-pie"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─────────── PAGE 3: EXPENSE ANALYSIS ─────────── -->
+      <section id="page-expense" class="page" data-title="Expense Analysis">
+        <div class="page-hero">
+          <div class="page-hero-left">
+            <h1 class="page-title">Expense Analysis</h1>
+            <p class="page-subtitle">Category drill-down with monthly trend &amp; contribution</p>
+          </div>
+          <div class="page-hero-controls">
+            <label class="ctrl-label">Entity</label>
+            <select id="exp-entity-select" class="ctrl-select">
+              <option value="consolidated">Consolidated</option>
+              <option value="india">India</option>
+              <option value="us">US</option>
+            </select>
+            <label class="ctrl-label">Month</label>
+            <select id="exp-month-select" class="ctrl-select"></select>
+          </div>
+        </div>
+
+        <!-- Overview Charts -->
+        <div class="charts-grid-2">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Expense Mix</h3>
+              <span class="chart-sub" id="exp-mix-label">by Category</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-exp-mix"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Monthly Expense Trend</h3>
+              <span class="chart-sub">All Categories</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-exp-trend"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expense Category Drill-Downs -->
+        <div class="section-title-row">
+          <h2 class="section-title">Category Drill-Down</h2>
+          <span class="section-sub">Click a category to expand</span>
+        </div>
+        <div id="expense-categories" class="expense-categories-grid"></div>
+      </section>
+
+      <!-- ─────────── PAGE 4: BUDGET vs ACTUAL ─────────── -->
+      <section id="page-budget" class="page" data-title="Budget vs Actual">
+        <div class="page-hero">
+          <div class="page-hero-left">
+            <h1 class="page-title">Budget vs Actual</h1>
+            <p class="page-subtitle">Variance analysis with traffic-light indicators</p>
+          </div>
+          <div class="page-hero-controls">
+            <label class="ctrl-label">Month</label>
+            <select id="bva-month-select" class="ctrl-select"></select>
+          </div>
+        </div>
+
+        <!-- Budget KPIs -->
+        <div class="bva-kpi-row" id="bva-kpi-row"></div>
+
+        <!-- Charts -->
+        <div class="charts-grid-2">
+          <div class="chart-card span-2-of-2">
+            <div class="chart-card-header">
+              <h3>Budget vs Actual – Key Metrics</h3>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-bva-grouped"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Variance Waterfall</h3>
+              <span class="chart-sub">Budget → Actual</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chart-bva-waterfall"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- BvA Table with drill-down -->
+        <div class="data-card">
+          <div class="data-card-header">
+            <div>
+              <h3>Detailed Variance Report</h3>
+              <span class="data-card-sub" id="bva-table-period">—</span>
+            </div>
+            <div class="legend-chips">
+              <span class="legend-chip favorable">● Favorable</span>
+              <span class="legend-chip unfavorable">● Unfavorable</span>
+              <span class="legend-chip neutral">● Within 5%</span>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="fin-table bva-table" id="bva-table">
+              <thead>
+                <tr>
+                  <th class="col-particulars">Particulars</th>
+                  <th class="col-num">Budget</th>
+                  <th class="col-num">Actual</th>
+                  <th class="col-num">Variance</th>
+                  <th class="col-num">Var %</th>
+                  <th class="col-status">Status</th>
+                  <th class="col-drill"></th>
+                </tr>
+              </thead>
+              <tbody id="bva-tbody">
+                <tr><td colspan="7" class="table-placeholder">Select a month to load Budget vs Actual data</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Monthly Variance Trend -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <h3>Monthly Variance Trend</h3>
+            <span class="chart-sub">Revenue &amp; EBITDA vs Budget</span>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chart-variance-trend"></canvas>
+          </div>
+        </div>
+      </section>
+
+    </main><!-- /page-container -->
+  </div><!-- /main-wrap -->
+</div><!-- /app -->
+
+<!-- Search highlight overlay -->
+<div id="search-highlight-bar" class="search-highlight-bar" style="display:none">
+  <span id="search-result-info"></span>
+  <button id="search-clear-btn">✕ Clear</button>
+</div>
+
+<!-- Drill-down modal -->
+<div id="drilldown-modal" class="drilldown-modal" style="display:none">
+  <div class="drilldown-content">
+    <div class="drilldown-header">
+      <h3 id="drilldown-title">Category Detail</h3>
+      <button id="drilldown-close" class="drilldown-close">✕</button>
+    </div>
+    <div id="drilldown-body" class="drilldown-body"></div>
+  </div>
+</div>
+<div id="drilldown-overlay" class="drilldown-overlay" style="display:none"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
