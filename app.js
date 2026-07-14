@@ -901,7 +901,7 @@ function populateSelects(){
    DARK MODE
 ════════════════════════════════════════ */
 function setupTheme(){
-  const saved=localStorage.getItem('imag-theme')||'light';
+  const saved=localStorage.getItem('imag-theme')||'dark';
   document.documentElement.dataset.theme=saved;
   document.getElementById('theme-toggle')?.addEventListener('click',()=>{
     const next=document.documentElement.dataset.theme==='dark'?'light':'dark';
