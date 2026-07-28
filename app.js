@@ -12,22 +12,34 @@
 ════════════════════════════════════════ */
 const CFG = {
   files: {
-    mis:    './data/MIS Dashboard working.xlsx',
-    budget: './data/Imagnum Budget CY 2026_V10 - Forecast2.xlsx'
+    mis:    './data/Imagnum_MIS_Consolidated_Jan_May_2026.xlsx',
+    budget: './data/Imagnum_MIS_Consolidated_Jan_May_2026.xlsx'
   },
   sheets: {
     mis: {
-      consolidated: 'Sheet1',
+      consolidated: 'MIS Actuals Jan-Jun',
+      ytdLabel: 'Jan-Jun Total',
       /* partCol / indiaCol / usCol / consCol are ALL 0-indexed (sheet_to_json array positions) */
       monthMap: {
-        'Jan-26': { sheet: 'Consolidated PnL-Jan',  partCol:1, indiaCol:3, usCol:2, consCol:4 },
-        'Feb-26': { sheet: 'Consolidated- Mar&Feb', partCol:1, indiaCol:6, usCol:7, consCol:8 },
-        'Mar-26': { sheet: 'Consolidated- Mar&Feb', partCol:1, indiaCol:2, usCol:3, consCol:4 },
-        'Apr-26': { sheet: 'Consolidted PnL-April', partCol:1, indiaCol:2, usCol:3, consCol:5 },
-        'May-26': { sheet: 'Consolidted PnL-May',   partCol:1, indiaCol:2, usCol:3, consCol:5 }
+        'Jan-26': { sheet: 'Jan',         partCol:1, indiaCol:3, usCol:2, consCol:4 },
+        'Feb-26': { sheet: 'March-Feb',   partCol:1, indiaCol:6, usCol:7, consCol:8 },
+        'Mar-26': { sheet: 'March-Feb',   partCol:1, indiaCol:2, usCol:3, consCol:4 },
+        'Apr-26': { sheet: 'April-March', partCol:1, indiaCol:2, usCol:3, consCol:5 },
+        'May-26': { sheet: 'May-April',   partCol:1, indiaCol:2, usCol:3, consCol:5 },
+        'Jun-26': { sheet: "Jun'26",      partCol:1, indiaCol:2, usCol:3, consCol:5 }
       }
     },
-    budget: { plSummary: '3. P&L Summary' }
+    budget: { plSummary: 'P&L - Bud.', bva: 'Bud vs Act - May & Jun' },
+    /* Client-wise gross margin — nameCol/revCol/cmCol/cmPctCol are 0-indexed */
+    clientGM: {
+      cols: { name:0, rev:1, fte:3, cm:12, cmPct:13 },
+      months: {
+        'May-26': { actual:'May-Actual', actHdr:4, forecast:'May-Forecast', fcHdr:4, variance:'May-Variance', varHdr:3 },
+        'Jun-26': { actual:'June-Actual', actHdr:4, forecast:'June-Fore.',  fcHdr:5, variance:'June-Variance', varHdr:4 }
+      },
+      /* variance sheet columns */
+      varCols: { name:0, fcGM:1, actGM:2, variance:3, sdl:4 }
+    }
   },
   /* Row-label search patterns for MIS sheets (first match wins) */
   labels: {
@@ -53,18 +65,18 @@ const CFG = {
   },
   /* Budget sheet label patterns — use LAST match (consolidated section) */
   budgetLabels: {
-    revenue:     [' Revenue '],
-    salaries:    [' Salaries '],
-    facilities:  [' Facilities '],
-    telecom:     [' Telcom/Data', ' Telecom'],
-    transport:   [' Transport '],
-    otherCogs:   [' Other Cogs ', ' Other COGS'],
-    totalCogs:   [' Total Cogs', ' Total COGS'],
-    gm:          [' GM '],
-    totalSGA:    [' Overall SG&A', ' Overall Sg&A'],
-    ebitda:      [' Ebidta ', ' EBITDA '],
-    financeCost: [' Interest/Finance', ' Finance'],
-    pbt:         [' PBT ']
+    revenue:     ['Revenue'],
+    salaries:    ['Salaries'],
+    facilities:  ['Facilities'],
+    telecom:     ['Telcom/Data', 'Telecom'],
+    transport:   ['Transport'],
+    otherCogs:   ['Other Cogs', 'Other COGS'],
+    totalCogs:   ['Total Cogs', 'Total COGS'],
+    gm:          ['GM'],
+    totalSGA:    ['Overall SG&A', 'Overall Sg&A'],
+    ebitda:      ['Ebidta', 'EBITDA'],
+    financeCost: ['Interest/Finance Charges'],
+    pbt:         ['PBT']
   },
   expenseCategories: [
     { key:'manpower',  label:'Employee Cost',        color:'#2563eb' },
@@ -198,7 +210,16 @@ function extractMIS() {
     if(/\w+-\d{2}/.test(v)) months.push({label:v,col:c});
   }
   function ser(patterns){return months.map(m=>getVal(rows,patterns,m.col,0));}
-  return {
+  /* YTD column — labelled "Jan-Jun Total"; falls back to summing the months */
+  let ytdCol=-1;
+  for(let c=1;c<hdr.length;c++){
+    if(/total/i.test(String(hdr[c]||''))) { ytdCol=c; break; }
+  }
+  function ytdVal(patterns,series){
+    if(ytdCol>=0) return getVal(rows,patterns,ytdCol,0);
+    return series.reduce((a,b)=>a+(b||0),0);
+  }
+  const out={
     months:months.map(m=>m.label),
     revenue:     ser(CFG.labels.revenue),
     cogs:        ser(CFG.labels.cogs),
@@ -220,6 +241,10 @@ function extractMIS() {
     otherCogs:   ser(CFG.labels.otherCogs),
     totalSGA:    ser(CFG.labels.totalSGA)
   };
+  out.ytdLabel = ytdCol>=0 ? String(hdr[ytdCol]).trim() : 'YTD Total';
+  out.ytd = {};
+  Object.keys(CFG.labels).forEach(k=>{ out.ytd[k]=ytdVal(CFG.labels[k], out[k]||[]); });
+  return out;
 }
 
 /* ════════════════════════════════════════
@@ -314,6 +339,154 @@ function extractBudget() {
     financeCost: ser(CFG.budgetLabels.financeCost),
     pbt:         ser(CFG.budgetLabels.pbt)        /* unique */
   };
+}
+
+/* ════════════════════════════════════════
+   EXTRACT — Restated Budget vs Actual sheet
+   The workbook ships its own reconciled BvA tab for the
+   months finance has closed. Where it exists it wins over
+   the raw budget sheet, because several budget lines are
+   restated there (see the "Budget restated" remarks).
+════════════════════════════════════════ */
+const BVA_MAP={
+  revenue:'Total Revenue', salaries:'Total Manpower', facility:'Facility Cost',
+  telecom:'Telcom / Data', transport:'Transport', otherCogs:'Other COGS',
+  totalCogs:'Total COGS', gm:'Gross Profit', totalSGA:'Overall SG&A',
+  ebitda:'EBITDA', financeCost:'Finance Cost', pbt:'PBT'
+};
+const MON3={jan:'Jan',feb:'Feb',mar:'Mar',apr:'Apr',may:'May',jun:'Jun',
+            jul:'Jul',aug:'Aug',sep:'Sep',oct:'Oct',nov:'Nov',dec:'Dec'};
+function extractBvA(){
+  const name=CFG.sheets.budget.bva;
+  let rows;
+  try { rows=sheetToArr(WB.budget,name); } catch(e){ return {}; }
+  if(!rows||!rows.length) return {};
+  const hdrIdx=findRowIdx(rows,['Particulars'],0);
+  if(hdrIdx<1) return {};
+  const monthRow=rows[hdrIdx-1]||[];
+  const hdr=rows[hdrIdx]||[];
+  /* Locate each month block: a date cell above, with Budget/Actual beneath */
+  const blocks=[];
+  for(let c=1;c<monthRow.length;c++){
+    const raw=String(monthRow[c]||'').trim();
+    if(!raw) continue;
+    const m=raw.match(/([A-Za-z]{3})[a-z]*[\s-]+(\d{2,4})/);
+    if(!m) continue;
+    const mon=MON3[m[1].toLowerCase()];
+    if(!mon) continue;
+    const yr=m[2].slice(-2);
+    /* Budget / Actual are the next two columns that say so */
+    let budCol=-1, actCol=-1;
+    for(let k=c;k<Math.min(c+5,hdr.length);k++){
+      const h=String(hdr[k]||'').trim().toLowerCase();
+      if(h==='budget'&&budCol<0) budCol=k;
+      else if(h==='actual'&&actCol<0) actCol=k;
+    }
+    if(budCol<0||actCol<0) continue;
+    blocks.push({label:`${mon}-${yr}`,budCol,actCol});
+  }
+  const out={};
+  blocks.forEach(b=>{
+    const vals={};
+    Object.keys(BVA_MAP).forEach(k=>{
+      const idx=findRowIdx(rows,[BVA_MAP[k]],0);
+      if(idx===-1) return;
+      vals[k]={bud:parseNum(rows[idx][b.budCol]), act:parseNum(rows[idx][b.actCol])};
+    });
+    if(Object.keys(vals).length) out[b.label]=vals;
+  });
+  return out;
+}
+
+/* ════════════════════════════════════════
+   EXTRACT — Client-wise Gross Margin + SDL
+════════════════════════════════════════ */
+/* Normalise a project name for cross-sheet matching:
+   collapses non-breaking spaces / double spaces / case. */
+function normName(s){
+  return String(s||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+}
+function normSDL(s){
+  const v=String(s||'').replace(/\u00a0/g,' ').trim();
+  if(!v) return 'Unassigned';
+  if(/^sath?ya/i.test(v)) return 'Sathya';
+  if(/^ashok/i.test(v))   return 'Ashok';
+  return v;
+}
+/* Build a name -> {rev, cm, cmPct, fte} map from an Actual/Forecast client sheet */
+function clientRowMap(sheetName, hdrRow){
+  const rows=sheetToArr(WB.mis, sheetName);
+  const C=CFG.sheets.clientGM.cols;
+  const map={};
+  for(let i=hdrRow;i<rows.length;i++){
+    const nm=rows[i][C.name];
+    if(!nm) continue;
+    const key=normName(nm);
+    if(!key||key==='total'||key==='grand total') continue;
+    map[key]={
+      name:String(nm).replace(/\u00a0/g,' ').trim(),
+      rev:  parseNum(rows[i][C.rev]),
+      fte:  parseNum(rows[i][C.fte]),
+      cm:   parseNum(rows[i][C.cm]),
+      cmPct:parseNum(rows[i][C.cmPct])*100
+    };
+  }
+  return map;
+}
+function extractClientGM(){
+  const conf=CFG.sheets.clientGM;
+  const V=conf.varCols;
+  const result={ months:[], data:{} };
+  Object.keys(conf.months).forEach(month=>{
+    const m=conf.months[month];
+    let varRows;
+    try { varRows=sheetToArr(WB.mis,m.variance); } catch(e){ return; }
+    if(!varRows||!varRows.length) return;
+    const act=clientRowMap(m.actual,   m.actHdr);
+    const fc =clientRowMap(m.forecast, m.fcHdr);
+    const clients=[];
+    for(let i=m.varHdr;i<varRows.length;i++){
+      const raw=varRows[i][V.name];
+      if(!raw) continue;
+      const key=normName(raw);
+      if(!key||key==='total'||key==='grand total') continue;
+      const a=act[key]||{}, f=fc[key]||{};
+      clients.push({
+        name:  String(raw).replace(/\u00a0/g,' ').trim(),
+        sdl:   normSDL(varRows[i][V.sdl]),
+        fcGM:  parseNum(varRows[i][V.fcGM])*100,
+        actGM: parseNum(varRows[i][V.actGM])*100,
+        varGM: parseNum(varRows[i][V.variance])*100,
+        rev:   a.rev||0,
+        cm:    a.cm||0,
+        fte:   a.fte||0,
+        fcRev: f.rev||0,
+        fcCM:  f.cm||0,
+        matched: !!act[key]
+      });
+    }
+    if(!clients.length) return;
+    result.months.push(month);
+    result.data[month]=clients;
+  });
+  return result;
+}
+/* Roll client rows up by SDL owner */
+function aggregateSDL(clients){
+  const agg={};
+  clients.forEach(c=>{
+    const d=agg[c.sdl]||(agg[c.sdl]={sdl:c.sdl,n:0,rev:0,cm:0,fcRev:0,fcCM:0,fav:0,unfav:0,clients:[]});
+    d.n++; d.rev+=c.rev; d.cm+=c.cm; d.fcRev+=c.fcRev; d.fcCM+=c.fcCM;
+    if(c.varGM>=0) d.fav++; else d.unfav++;
+    d.clients.push(c);
+  });
+  Object.values(agg).forEach(d=>{
+    d.cmPct   = d.rev ? (d.cm/d.rev)*100 : 0;
+    d.fcCmPct = d.fcRev ? (d.fcCM/d.fcRev)*100 : 0;
+    d.gmVar   = d.cmPct - d.fcCmPct;
+    d.clients.sort((a,b)=>b.varGM-a.varGM);
+  });
+  return agg;
 }
 
 /* ════════════════════════════════════════
@@ -614,6 +787,20 @@ function renderBudgetVsActual(monthLabel) {
     {key:'pbt',        label:'Net Profit (PBT)',    bud:bud.pbt[bI]||0,      act:mis.pbt[aI]||0,      fav:v=>v>=0, cls:'row-grand'}
   ];
 
+  /* Override with the workbook's own reconciled BvA figures where present */
+  const ov=(DATA.bva||{})[monthLabel];
+  if(ov){
+    rows.forEach(r=>{
+      if(r.key&&ov[r.key]){ r.bud=ov[r.key].bud; r.act=ov[r.key].act; }
+    });
+  }
+  const srcNote=document.getElementById('bva-source-note');
+  if(srcNote){
+    srcNote.textContent=ov
+      ? `Source: "${CFG.sheets.budget.bva}" — the workbook's reconciled budget vs actual for this month.`
+      : `Source: "${CFG.sheets.budget.plSummary}" budget vs MIS actuals. No reconciled budget-vs-actual tab exists for ${monthLabel}.`;
+  }
+
   /* KPI summary cards */
   const kpiRow=document.getElementById('bva-kpi-row');
   if(kpiRow){
@@ -857,6 +1044,207 @@ function setupExports(){
 }
 
 /* ════════════════════════════════════════
+   PAGE 1b — KEY METRICS (all months + YTD)
+════════════════════════════════════════ */
+function renderKeyMetrics(){
+  const mis=DATA.mis, months=mis.months, y=mis.ytd||{};
+  const host=document.getElementById('key-metrics-body');
+  if(!host||!months.length) return;
+  const pctRow=(num,den)=>months.map((_,i)=>den[i]?pct(num[i],den[i]):0);
+  const ytdPct=(a,b)=>y[b]?pct(y[a],y[b]):0;
+
+  const rows=[
+    {label:'Total Revenue',   s:mis.revenue,     ytd:y.revenue,     strong:true},
+    {label:'Total COGS',      s:mis.cogs,        ytd:y.cogs},
+    {label:'Gross Profit',    s:mis.grossProfit, ytd:y.grossProfit, strong:true},
+    {label:'Gross Margin %',  s:pctRow(mis.grossProfit,mis.revenue), ytd:ytdPct('grossProfit','revenue'), isPct:true},
+    {label:'Overall SG&A',    s:mis.totalSGA,    ytd:y.totalSGA},
+    {label:'EBITDA',          s:mis.ebitda,      ytd:y.ebitda,      strong:true},
+    {label:'EBITDA Margin %', s:pctRow(mis.ebitda,mis.revenue), ytd:ytdPct('ebitda','revenue'), isPct:true},
+    {label:'PBT',             s:mis.pbt,         ytd:y.pbt,         strong:true},
+    {label:'Net Margin %',    s:pctRow(mis.pbt,mis.revenue), ytd:ytdPct('pbt','revenue'), isPct:true},
+    {label:'Employee Cost',   s:mis.manpower,    ytd:y.manpower},
+    {label:'Facility Cost',   s:mis.facility,    ytd:y.facility},
+    {label:'Telecom & Software', s:mis.telecom,  ytd:y.telecom},
+    {label:'Transport',       s:mis.transport,   ytd:y.transport},
+    {label:'Other COGS',      s:mis.otherCogs,   ytd:y.otherCogs},
+    {label:'Selling & Marketing', s:mis.sellingExp, ytd:y.sellingExp},
+    {label:'Management Salaries', s:mis.mgmtSal, ytd:y.mgmtSal},
+    {label:'Legal & Professional', s:mis.legalProf, ytd:y.legalProf},
+    {label:'G&A Salaries',    s:mis.gaSal,       ytd:y.gaSal},
+    {label:'Admin & G&A',     s:mis.adminExp,    ytd:y.adminExp},
+    {label:'Finance Cost',    s:mis.financeCost, ytd:y.financeCost},
+    {label:'Depreciation',    s:mis.depreciation,ytd:y.depreciation}
+  ];
+  const cell=(v,isPct)=>isPct?fmtPct(v):fmtUSD(v);
+  host.innerHTML=`
+    <table class="fin-table km-table">
+      <thead><tr>
+        <th>Particulars</th>
+        ${months.map(m=>`<th class="col-num">${m}</th>`).join('')}
+        <th class="col-num km-ytd">${mis.ytdLabel||'YTD'}</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr class="${r.strong?'row-strong':''}">
+          <td>${r.label}</td>
+          ${r.s.map(v=>`<td class="col-num ${(v||0)<0?'unfavorable-text':''}">${cell(v,r.isPct)}</td>`).join('')}
+          <td class="col-num km-ytd ${(r.ytd||0)<0?'unfavorable-text':''}">${cell(r.ytd,r.isPct)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+/* ════════════════════════════════════════
+   PAGE 5 — CLIENT-WISE GROSS MARGIN
+════════════════════════════════════════ */
+function renderClientGM(month, cmpMonth){
+  const cg=DATA.clientGM;
+  if(!cg||!cg.months.length) return;
+  month=month||cg.months[cg.months.length-1];
+  const rowsA=cg.data[month]||[];
+  const rowsB=(cmpMonth&&cmpMonth!=='none')?(cg.data[cmpMonth]||[]):null;
+  const bMap={}; if(rowsB) rowsB.forEach(r=>bMap[normName(r.name)]=r);
+
+  const totRev=rowsA.reduce((a,c)=>a+c.rev,0);
+  const totCM =rowsA.reduce((a,c)=>a+c.cm,0);
+  const blended=totRev?(totCM/totRev)*100:0;
+  const fav=rowsA.filter(c=>c.varGM>=0).length;
+
+  const setTxt=(id,v)=>{const e=document.getElementById(id); if(e)e.textContent=v;};
+  setTxt('cgm-total-rev', fmtUSD(totRev));
+  setTxt('cgm-total-cm',  fmtUSD(totCM));
+  setTxt('cgm-blended',   fmtPct(blended));
+  setTxt('cgm-count',     `${rowsA.length} clients`);
+  setTxt('cgm-fav',       `${fav} favourable / ${rowsA.length-fav} unfavourable`);
+  setTxt('cgm-period',    cmpMonth&&cmpMonth!=='none'?`${month} vs ${cmpMonth}`:month);
+
+  /* Sorted by actual GM% descending */
+  const sorted=[...rowsA].sort((a,b)=>b.actGM-a.actGM);
+
+  const tbody=document.getElementById('cgm-tbody');
+  if(tbody){
+    tbody.innerHTML=sorted.map(c=>{
+      const b=bMap[normName(c.name)];
+      const mom=b?c.actGM-b.actGM:null;
+      const momCell=rowsB
+        ? `<td class="col-num ${mom>=0?'favorable-text':'unfavorable-text'}">${b?fmtPct(mom):'—'}</td>
+           <td class="col-num">${b?fmtPct(b.actGM):'—'}</td>`
+        : '';
+      return `<tr>
+        <td>${c.name}${c.matched?'':' <span class="km-flag" title="No matching row in the Actual sheet — revenue and CM shown as zero">no actual</span>'}</td>
+        <td><span class="sdl-chip sdl-${c.sdl.toLowerCase()}">${c.sdl}</span></td>
+        <td class="col-num">${fmtUSD(c.rev)}</td>
+        <td class="col-num">${fmtUSD(c.cm)}</td>
+        <td class="col-num">${fmtPct(c.fcGM)}</td>
+        <td class="col-num ${c.actGM<0?'unfavorable-text':''}">${fmtPct(c.actGM)}</td>
+        <td class="col-num ${c.varGM>=0?'favorable-text':'unfavorable-text'}">${fmtPct(c.varGM)}</td>
+        ${momCell}
+      </tr>`;
+    }).join('');
+  }
+  /* Toggle MoM header columns */
+  document.querySelectorAll('.cgm-mom-col').forEach(el=>{el.style.display=rowsB?'':'none';});
+  const mh=document.getElementById('cgm-mom-prev-hdr');
+  if(mh&&rowsB) mh.textContent=`${cmpMonth} GM%`;
+
+  /* Chart: forecast vs actual GM% by client */
+  const top=sorted.slice(0,14);
+  makeChart('cgm-chart',{type:'bar',data:{labels:top.map(c=>c.name.length>18?c.name.slice(0,17)+'…':c.name),
+    datasets:[
+      {label:'Forecast GM%',data:top.map(c=>c.fcGM),backgroundColor:alpha(PAL.blue,0.45),borderRadius:3},
+      {label:'Actual GM%',  data:top.map(c=>c.actGM),backgroundColor:alpha(PAL.green,0.8),borderRadius:3}
+    ]},
+    options:lineOpts({scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%'}},x:{ticks:{maxRotation:45,minRotation:35,autoSkip:false,font:{size:10}}}},
+      plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmtPct(c.raw)}`}}}})});
+
+  /* Chart: variance ranking */
+  const vs=[...rowsA].sort((a,b)=>b.varGM-a.varGM).slice(0,14);
+  makeChart('cgm-var-chart',{type:'bar',data:{labels:vs.map(c=>c.name.length>18?c.name.slice(0,17)+'…':c.name),
+    datasets:[{label:'GM Variance (pp)',data:vs.map(c=>c.varGM),
+      backgroundColor:vs.map(c=>c.varGM>=0?alpha(PAL.green,0.75):alpha(PAL.red,0.75)),borderRadius:3}]},
+    options:lineOpts({indexAxis:'y',scales:{x:{ticks:{callback:v=>v.toFixed(0)+'%'}},y:{grid:{display:false},ticks:{font:{size:10}}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` Variance: ${fmtPct(c.raw)}`}}}})});
+}
+
+/* ════════════════════════════════════════
+   PAGE 6 — SDL PERFORMANCE (Ashok vs Sathya)
+════════════════════════════════════════ */
+function renderSDL(month){
+  const cg=DATA.clientGM;
+  if(!cg||!cg.months.length) return;
+  month=month||cg.months[cg.months.length-1];
+  const agg=aggregateSDL(cg.data[month]||[]);
+  const OWNERS=['Ashok','Sathya'];
+  const setTxt=(id,v)=>{const e=document.getElementById(id); if(e)e.textContent=v;};
+  setTxt('sdl-period',month);
+
+  /* Head-to-head scorecards */
+  const host=document.getElementById('sdl-cards');
+  if(host){
+    host.innerHTML=OWNERS.map(o=>{
+      const d=agg[o]||{n:0,rev:0,cm:0,cmPct:0,fcCmPct:0,gmVar:0,fav:0,unfav:0};
+      const other=agg[OWNERS.find(x=>x!==o)]||{cmPct:0,rev:0};
+      const lead=d.cmPct-(other.cmPct||0);
+      return `<div class="sdl-card sdl-card-${o.toLowerCase()}">
+        <div class="sdl-card-head"><span class="sdl-chip sdl-${o.toLowerCase()}">${o}</span>
+          <span class="sdl-card-sub">${d.n} clients</span></div>
+        <div class="sdl-metric-big">${fmtPct(d.cmPct)}<span class="sdl-metric-cap">blended GM%</span></div>
+        <div class="sdl-metric-row"><span>Revenue</span><b>${fmtUSD(d.rev)}</b></div>
+        <div class="sdl-metric-row"><span>Contribution margin</span><b>${fmtUSD(d.cm)}</b></div>
+        <div class="sdl-metric-row"><span>Forecast GM%</span><b>${fmtPct(d.fcCmPct)}</b></div>
+        <div class="sdl-metric-row"><span>GM variance</span><b class="${d.gmVar>=0?'favorable-text':'unfavorable-text'}">${fmtPct(d.gmVar)}</b></div>
+        <div class="sdl-metric-row"><span>Beat forecast</span><b>${d.fav} of ${d.n}</b></div>
+        <div class="sdl-lead ${lead>=0?'favorable-text':'unfavorable-text'}">${lead>=0?'▲':'▼'} ${fmtPct(Math.abs(lead))} vs the other SDL</div>
+      </div>`;
+    }).join('');
+  }
+
+  /* Grouped comparison chart */
+  const metrics=['Revenue','Contribution margin'];
+  makeChart('sdl-chart',{type:'bar',data:{labels:metrics,
+    datasets:OWNERS.map((o,i)=>{
+      const d=agg[o]||{rev:0,cm:0};
+      return {label:o,data:[d.rev,d.cm],
+        backgroundColor:alpha(i===0?PAL.blue:PAL.purple,0.8),borderRadius:4};
+    })},
+    options:lineOpts({scales:{y:{ticks:{callback:v=>fmtUSD(v,true)}}}})});
+
+  /* GM% by client, split by owner */
+  const all=[];
+  OWNERS.forEach(o=>(agg[o]?.clients||[]).forEach(c=>all.push(c)));
+  all.sort((a,b)=>b.actGM-a.actGM);
+  makeChart('sdl-client-chart',{type:'bar',data:{
+    labels:all.map(c=>c.name.length>16?c.name.slice(0,15)+'…':c.name),
+    datasets:[{label:'Actual GM%',data:all.map(c=>c.actGM),
+      backgroundColor:all.map(c=>alpha(c.sdl==='Ashok'?PAL.blue:PAL.purple,0.8)),borderRadius:3}]},
+    options:lineOpts({scales:{y:{ticks:{callback:v=>v.toFixed(0)+'%'}},x:{ticks:{maxRotation:50,minRotation:40,autoSkip:false,font:{size:9}}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        title:i=>all[i[0].dataIndex].name,
+        label:c=>[` SDL: ${all[c.dataIndex].sdl}`,` Actual GM%: ${fmtPct(c.raw)}`,` Variance: ${fmtPct(all[c.dataIndex].varGM)}`]}}}})});
+
+  /* Detail table */
+  const tb=document.getElementById('sdl-tbody');
+  if(tb){
+    tb.innerHTML=OWNERS.flatMap(o=>{
+      const d=agg[o]; if(!d) return [];
+      return [`<tr class="row-strong"><td colspan="6"><span class="sdl-chip sdl-${o.toLowerCase()}">${o}</span> &nbsp;${d.n} clients · ${fmtUSD(d.rev)} revenue · ${fmtPct(d.cmPct)} blended GM</td></tr>`]
+        .concat(d.clients.map(c=>`<tr>
+          <td style="padding-left:22px">${c.name}</td>
+          <td class="col-num">${fmtUSD(c.rev)}</td>
+          <td class="col-num">${fmtUSD(c.cm)}</td>
+          <td class="col-num">${fmtPct(c.fcGM)}</td>
+          <td class="col-num ${c.actGM<0?'unfavorable-text':''}">${fmtPct(c.actGM)}</td>
+          <td class="col-num ${c.varGM>=0?'favorable-text':'unfavorable-text'}">${fmtPct(c.varGM)}</td>
+        </tr>`));
+    }).join('');
+  }
+  /* Unassigned note */
+  const un=agg['Unassigned'];
+  const note=document.getElementById('sdl-unassigned');
+  if(note) note.textContent=un?`${un.n} project${un.n>1?'s':''} in ${month} have no SDL assigned in the workbook (${un.clients.map(c=>c.name).join(', ')}) and are excluded from the comparison.`:'';
+}
+
+/* ════════════════════════════════════════
    NAVIGATION
 ════════════════════════════════════════ */
 let currentPage='executive';
@@ -895,6 +1283,28 @@ function populateSelects(){
   document.getElementById('exp-month-select')?.addEventListener('change',e=>renderExpenseAnalysis(e.target.value,document.getElementById('exp-entity-select')?.value));
   document.getElementById('exp-entity-select')?.addEventListener('change',e=>renderExpenseAnalysis(document.getElementById('exp-month-select')?.value,e.target.value));
   document.getElementById('bva-month-select')?.addEventListener('change',e=>renderBudgetVsActual(e.target.value));
+
+  /* Client GM + SDL — only the months that have client-level sheets */
+  const cg=DATA.clientGM;
+  if(cg&&cg.months.length){
+    const cgLatest=cg.months[cg.months.length-1];
+    const cgPrev=cg.months.length>1?cg.months[cg.months.length-2]:null;
+    const opts=(sel)=>cg.months.map(m=>`<option value="${m}"${m===sel?' selected':''}>${m}</option>`).join('');
+    const cgSel=document.getElementById('cgm-month-select');
+    if(cgSel) cgSel.innerHTML=opts(cgLatest);
+    const cmpSel=document.getElementById('cgm-compare-select');
+    if(cmpSel) cmpSel.innerHTML='<option value="none">No comparison</option>'+
+      cg.months.map(m=>`<option value="${m}"${m===cgPrev?' selected':''}>${m}</option>`).join('');
+    const sdlSel=document.getElementById('sdl-month-select');
+    if(sdlSel) sdlSel.innerHTML=opts(cgLatest);
+
+    const reCGM=()=>renderClientGM(
+      document.getElementById('cgm-month-select')?.value,
+      document.getElementById('cgm-compare-select')?.value);
+    cgSel?.addEventListener('change',reCGM);
+    cmpSel?.addEventListener('change',reCGM);
+    sdlSel?.addEventListener('change',e=>renderSDL(e.target.value));
+  }
 }
 
 /* ════════════════════════════════════════
@@ -918,22 +1328,34 @@ function setupTheme(){
 async function init(){
   try{
     applyChartDefaults();
-    WB.mis   =await loadWorkbook(CFG.files.mis,   'MIS Dashboard');
-    WB.budget=await loadWorkbook(CFG.files.budget, 'Budget');
+    WB.mis   =await loadWorkbook(CFG.files.mis, 'MIS Consolidated');
+    WB.budget=(CFG.files.budget===CFG.files.mis)
+      ? WB.mis
+      : await loadWorkbook(CFG.files.budget, 'Budget');
     setStatus('Extracting financial data…');
     DATA.mis   =extractMIS();
     DATA.budget=extractBudget();
+    DATA.bva   =extractBvA();
     setStatus('Processing monthly P&L…');
     DATA.monthPL={};
     for(const m of DATA.mis.months) DATA.monthPL[m]=extractMonthPL(m);
+    setStatus('Reading client-wise gross margin…');
+    DATA.clientGM=extractClientGM();
     buildSearchIndex();
     setStatus('Rendering dashboard…');
     populateSelects();
     const latest=DATA.mis.months[DATA.mis.months.length-1];
     renderExecutive();
+    renderKeyMetrics();
     renderPL(latest);
     renderExpenseAnalysis(latest,'consolidated');
     renderBudgetVsActual(latest);
+    if(DATA.clientGM&&DATA.clientGM.months.length){
+      const cgLatest=DATA.clientGM.months[DATA.clientGM.months.length-1];
+      const cgPrev=DATA.clientGM.months.length>1?DATA.clientGM.months[DATA.clientGM.months.length-2]:'none';
+      renderClientGM(cgLatest,cgPrev);
+      renderSDL(cgLatest);
+    }
     setupNavigation();
     setupSearch();
     setupExports();
