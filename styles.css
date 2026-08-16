@@ -889,3 +889,25 @@ td.pl-indent-2 { padding-left: 44px !important; color: var(--text-muted); font-s
 @media (max-width: 900px) {
   .sdl-card-grid { grid-template-columns: 1fr; }
 }
+
+
+/* ═══════════════════════════════════════════════════
+   P&L in-place cost drill-down  ·  Expense tie-out
+═══════════════════════════════════════════════════ */
+tr.pl-expandable{cursor:pointer;transition:background .12s}
+tr.pl-expandable:hover{background:var(--row-hover,rgba(127,127,127,.08))}
+.pl-caret{display:inline-block;width:14px;font-size:10px;opacity:.55;
+  transition:transform .15s ease;transform-origin:center}
+tr.pl-expandable.open .pl-caret{transform:rotate(90deg);opacity:.9}
+.pl-sub-count{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:9px;
+  font-size:10px;font-weight:600;line-height:1.5;opacity:.6;
+  background:rgba(127,127,127,.16)}
+tr.pl-sub-row td{font-size:12px;opacity:.82;
+  border-top:1px dashed rgba(127,127,127,.18)}
+.pl-indent-2{padding-left:38px !important}
+.pl-detail-note{font-size:12px;color:var(--text-muted);margin:0 0 10px}
+.exp-tieout{font-size:11.5px;color:var(--text-muted);margin:10px 2px 0;line-height:1.5}
+.exp-cat-grp{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:4px;
+  font-size:9.5px;font-weight:700;letter-spacing:.04em;opacity:.55;
+  background:rgba(127,127,127,.16);vertical-align:middle}
+.kpi-change-label{font-size:10.5px;color:var(--text-muted);margin-left:6px}

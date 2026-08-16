@@ -282,8 +282,7 @@
           <div class="page-hero-controls">
             <label class="ctrl-label">View period</label>
             <select id="exec-period-select" class="ctrl-select">
-              <option value="latest">Latest Month</option>
-              <option value="all" selected>YTD (All Months)</option>
+              <option value="">Loading…</option>
             </select>
           </div>
         </div>
@@ -390,7 +389,7 @@
           <div class="chart-card">
             <div class="chart-card-header">
               <h3>Expense Distribution</h3>
-              <span class="chart-sub">Latest Month</span>
+              <span class="chart-sub" id="exec-expdist-sub">Latest Month</span>
             </div>
             <div class="chart-wrap">
               <canvas id="chart-exp-dist"></canvas>
@@ -463,6 +462,7 @@
             </div>
           </div>
           <div class="table-scroll">
+            <p class="pl-detail-note" id="pl-detail-note"></p>
             <table class="fin-table" id="pl-table">
               <thead>
                 <tr>
@@ -530,6 +530,7 @@
               <canvas id="chart-exp-mix"></canvas>
             </div>
           </div>
+            <p class="exp-tieout" id="exp-tieout"></p>
           <div class="chart-card">
             <div class="chart-card-header">
               <h3>Monthly Expense Trend</h3>
