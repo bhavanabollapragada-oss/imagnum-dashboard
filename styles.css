@@ -817,3 +817,97 @@ td.pl-indent-2 { padding-left: 44px !important; color: var(--text-muted); font-s
   .page-hero { flex-direction: column; }
   .margin-strips { display: none; }
 }
+
+/* ═══════════════════════════════════════
+   KEY METRICS TABLE (Executive)
+═══════════════════════════════════════ */
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+.km-table { min-width: 860px; font-variant-numeric: tabular-nums; }
+.km-table th, .km-table td { white-space: nowrap; }
+.km-table .km-ytd {
+  background: var(--surface-2);
+  font-weight: 700;
+  border-left: 2px solid var(--border);
+}
+.fin-table tr.row-strong > td {
+  font-weight: 700;
+  color: var(--text-primary);
+  background: var(--surface-2);
+}
+.km-flag {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 999px; margin-left: 6px;
+  background: rgba(217,119,6,0.14); color: var(--orange);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+
+/* ═══════════════════════════════════════
+   SDL CHIPS & SCORECARDS
+═══════════════════════════════════════ */
+.sdl-chip {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+}
+.sdl-ashok      { background: rgba(37,99,235,0.14);  color: var(--blue); }
+.sdl-sathya     { background: rgba(124,58,237,0.14); color: var(--purple); }
+.sdl-unassigned { background: var(--surface-2);      color: var(--text-muted); }
+
+.sdl-card-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+}
+.sdl-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px 22px; position: relative; overflow: hidden;
+}
+.sdl-card::after {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+}
+.sdl-card-ashok::after  { background: var(--blue); }
+.sdl-card-sathya::after { background: var(--purple); }
+.sdl-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.sdl-card-sub { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.sdl-metric-big {
+  font-size: 32px; font-weight: 800; letter-spacing: -1px;
+  color: var(--text-primary); line-height: 1; margin-bottom: 18px;
+}
+.sdl-metric-cap {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  color: var(--text-muted); text-transform: uppercase; margin-top: 6px;
+}
+.sdl-metric-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 7px 0; border-top: 1px solid var(--border); font-size: 13px;
+}
+.sdl-metric-row span { color: var(--text-secondary); }
+.sdl-metric-row b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.sdl-lead {
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+  font-size: 12px; font-weight: 700;
+}
+.sdl-note { font-size: 12px; color: var(--text-muted); margin-top: 12px; line-height: 1.5; }
+
+@media (max-width: 900px) {
+  .sdl-card-grid { grid-template-columns: 1fr; }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   P&L in-place cost drill-down  ·  Expense tie-out
+═══════════════════════════════════════════════════ */
+tr.pl-expandable{cursor:pointer;transition:background .12s}
+tr.pl-expandable:hover{background:var(--row-hover,rgba(127,127,127,.08))}
+.pl-caret{display:inline-block;width:14px;font-size:10px;opacity:.55;
+  transition:transform .15s ease;transform-origin:center}
+tr.pl-expandable.open .pl-caret{transform:rotate(90deg);opacity:.9}
+.pl-sub-count{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:9px;
+  font-size:10px;font-weight:600;line-height:1.5;opacity:.6;
+  background:rgba(127,127,127,.16)}
+tr.pl-sub-row td{font-size:12px;opacity:.82;
+  border-top:1px dashed rgba(127,127,127,.18)}
+.pl-indent-2{padding-left:38px !important}
+.pl-detail-note{font-size:12px;color:var(--text-muted);margin:0 0 10px}
+.exp-tieout{font-size:11.5px;color:var(--text-muted);margin:10px 2px 0;line-height:1.5}
+.exp-cat-grp{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:4px;
+  font-size:9.5px;font-weight:700;letter-spacing:.04em;opacity:.55;
+  background:rgba(127,127,127,.16);vertical-align:middle}
+.kpi-change-label{font-size:10.5px;color:var(--text-muted);margin-left:6px}
