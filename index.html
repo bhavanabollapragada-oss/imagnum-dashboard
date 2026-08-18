@@ -177,26 +177,6 @@
           </span>
           <span class="nav-label">Budget vs Actual</span>
         </button>
-        <div class="nav-section-label">Client &amp; Delivery</div>
-        <button class="nav-item" data-page="clientgm">
-          <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 5-7"/>
-            </svg>
-          </span>
-          <span class="nav-label">Client Gross Margin</span>
-          <span class="nav-badge">New</span>
-        </button>
-        <button class="nav-item" data-page="sdl">
-          <span class="nav-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
-            </svg>
-          </span>
-          <span class="nav-label">SDL Performance</span>
-          <span class="nav-badge">New</span>
-        </button>
       </nav>
     </div>
 
@@ -338,22 +318,6 @@
             </div>
             <canvas id="spark-ebitda" class="sparkline-canvas"></canvas>
           </div>
-          <div class="kpi-card" id="kpi-pbt">
-            <div class="kpi-top">
-              <div class="kpi-icon kpi-orange">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
-                </svg>
-              </div>
-              <span class="kpi-label">Net Profit (PBT)</span>
-            </div>
-            <div class="kpi-main-value" id="v-pbt">—</div>
-            <div class="kpi-foot">
-              <span class="kpi-badge" id="b-pbt">—</span>
-              <span class="kpi-sub-label">MoM change</span>
-            </div>
-            <canvas id="spark-pbt" class="sparkline-canvas"></canvas>
-          </div>
         </div>
 
         <!-- Margin Strips -->
@@ -367,11 +331,6 @@
             <span class="ms-label">EBITDA Margin</span>
             <div class="ms-bar-wrap"><div class="ms-bar ms-bar-purple" id="ms-ebitda" style="width:0%"></div></div>
             <span class="ms-value" id="ms-ebitda-val">—</span>
-          </div>
-          <div class="margin-strip">
-            <span class="ms-label">Net Margin</span>
-            <div class="ms-bar-wrap"><div class="ms-bar ms-bar-orange" id="ms-net" style="width:0%"></div></div>
-            <span class="ms-value" id="ms-net-val">—</span>
           </div>
         </div>
 
@@ -397,7 +356,7 @@
           </div>
           <div class="chart-card">
             <div class="chart-card-header">
-              <h3>Revenue → Net Profit</h3>
+              <h3>Revenue → EBITDA</h3>
               <span class="chart-sub" id="waterfall-label">Waterfall</span>
             </div>
             <div class="chart-wrap">
@@ -531,15 +490,6 @@
             </div>
           </div>
             <p class="exp-tieout" id="exp-tieout"></p>
-          <div class="chart-card">
-            <div class="chart-card-header">
-              <h3>Monthly Expense Trend</h3>
-              <span class="chart-sub">All Categories</span>
-            </div>
-            <div class="chart-wrap">
-              <canvas id="chart-exp-trend"></canvas>
-            </div>
-          </div>
         </div>
 
         <!-- Expense Category Drill-Downs -->
@@ -630,144 +580,6 @@
           <div class="chart-wrap">
             <canvas id="chart-variance-trend"></canvas>
           </div>
-        </div>
-      </section>
-
-      <!-- ─────────── PAGE 5: CLIENT-WISE GROSS MARGIN ─────────── -->
-      <section id="page-clientgm" class="page" data-title="Client Gross Margin">
-        <div class="page-hero">
-          <div class="page-hero-left">
-            <h1 class="page-title">Client-wise Gross Margin</h1>
-            <p class="page-subtitle">Forecast vs actual contribution margin by project · <span id="cgm-period">—</span></p>
-          </div>
-          <div class="page-hero-controls">
-            <div class="ctrl-group">
-              <label class="ctrl-label">Month</label>
-              <select id="cgm-month-select" class="ctrl-select"></select>
-            </div>
-            <div class="ctrl-group">
-              <label class="ctrl-label">Compare with</label>
-              <select id="cgm-compare-select" class="ctrl-select"></select>
-            </div>
-          </div>
-        </div>
-
-        <div class="kpi-row">
-          <div class="kpi-card">
-            <div class="kpi-label">Client Revenue</div>
-            <div class="kpi-main-value" id="cgm-total-rev">—</div>
-            <div class="kpi-sub-label" id="cgm-count">—</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Contribution Margin</div>
-            <div class="kpi-main-value" id="cgm-total-cm">—</div>
-            <div class="kpi-sub-label">Revenue less direct &amp; allocated cost</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Blended GM%</div>
-            <div class="kpi-main-value" id="cgm-blended">—</div>
-            <div class="kpi-sub-label">Across all projects</div>
-          </div>
-          <div class="kpi-card">
-            <div class="kpi-label">Vs Forecast</div>
-            <div class="kpi-main-value" id="cgm-fav">—</div>
-            <div class="kpi-sub-label">Projects beating forecast GM%</div>
-          </div>
-        </div>
-
-        <div class="charts-grid-exec">
-          <div class="chart-card span-2">
-            <div class="chart-card-header">
-              <h3>Forecast vs Actual GM%</h3>
-              <span class="chart-sub">Top projects by actual margin</span>
-            </div>
-            <div class="chart-wrap"><canvas id="cgm-chart"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <div class="chart-card-header">
-              <h3>GM Variance Ranking</h3>
-              <span class="chart-sub">Percentage points vs forecast</span>
-            </div>
-            <div class="chart-wrap"><canvas id="cgm-var-chart"></canvas></div>
-          </div>
-        </div>
-
-        <div class="chart-card" style="margin-top:20px">
-          <div class="chart-card-header">
-            <h3>Project Detail</h3>
-            <span class="chart-sub">Sorted by actual GM%</span>
-          </div>
-          <div class="table-scroll">
-            <table class="fin-table">
-              <thead>
-                <tr>
-                  <th>Project</th><th>SDL</th>
-                  <th class="col-num">Revenue</th><th class="col-num">CM</th>
-                  <th class="col-num">Forecast GM%</th><th class="col-num">Actual GM%</th>
-                  <th class="col-num">Variance</th>
-                  <th class="col-num cgm-mom-col">MoM Δ</th>
-                  <th class="col-num cgm-mom-col" id="cgm-mom-prev-hdr">Prior GM%</th>
-                </tr>
-              </thead>
-              <tbody id="cgm-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- ─────────── PAGE 6: SDL PERFORMANCE ─────────── -->
-      <section id="page-sdl" class="page" data-title="SDL Performance">
-        <div class="page-hero">
-          <div class="page-hero-left">
-            <h1 class="page-title">SDL Performance</h1>
-            <p class="page-subtitle">Ashok vs Sathya — client portfolio comparison · <span id="sdl-period">—</span></p>
-          </div>
-          <div class="page-hero-controls">
-            <div class="ctrl-group">
-              <label class="ctrl-label">Month</label>
-              <select id="sdl-month-select" class="ctrl-select"></select>
-            </div>
-          </div>
-        </div>
-
-        <div class="sdl-card-grid" id="sdl-cards"></div>
-
-        <div class="charts-grid-exec" style="margin-top:20px">
-          <div class="chart-card">
-            <div class="chart-card-header">
-              <h3>Portfolio Size</h3>
-              <span class="chart-sub">Revenue &amp; contribution margin</span>
-            </div>
-            <div class="chart-wrap"><canvas id="sdl-chart"></canvas></div>
-          </div>
-          <div class="chart-card span-2">
-            <div class="chart-card-header">
-              <h3>GM% by Client</h3>
-              <span class="chart-sub">Coloured by owning SDL</span>
-            </div>
-            <div class="chart-wrap"><canvas id="sdl-client-chart"></canvas></div>
-          </div>
-        </div>
-
-        <div class="chart-card" style="margin-top:20px">
-          <div class="chart-card-header">
-            <h3>Client Detail by SDL</h3>
-            <span class="chart-sub">Ranked by variance within each portfolio</span>
-          </div>
-          <div class="table-scroll">
-            <table class="fin-table">
-              <thead>
-                <tr>
-                  <th>Client</th>
-                  <th class="col-num">Revenue</th><th class="col-num">CM</th>
-                  <th class="col-num">Forecast GM%</th><th class="col-num">Actual GM%</th>
-                  <th class="col-num">Variance</th>
-                </tr>
-              </thead>
-              <tbody id="sdl-tbody"></tbody>
-            </table>
-          </div>
-          <p class="sdl-note" id="sdl-unassigned"></p>
         </div>
       </section>
 
