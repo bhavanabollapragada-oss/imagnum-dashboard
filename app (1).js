@@ -1322,6 +1322,163 @@ function renderKeyMetrics(){
 }
 
 /* ════════════════════════════════════════
+   PAGE — FULL-YEAR P&L
+   Renders the consolidated P&L exactly as it is laid out on the MIS
+   Actuals sheet: every month side by side, plus a YTD column. Row type is
+   inferred from the sheet itself — indented labels are cost groups, the
+   known total/section labels are totals, everything else between them is a
+   constituent line — so added or renamed line items flow through without
+   a code change. Stops at EBITDA.
+════════════════════════════════════════ */
+const PL_SECTIONS=new Set(['service income','overall operational cost','sg&a','g&a expenses']);
+
+function extractFullPL(){
+  const rows=sheetToArr(WB.mis,CFG.sheets.mis.consolidated);
+  const hIdx=findRowIdx(rows,['Particulars'],0);
+  if(hIdx<0) return null;
+  const hdr=rows[hIdx]||[];
+  const months=[];
+  for(let c=1;c<hdr.length;c++){
+    const v=String(hdr[c]||'').trim();
+    if(/\w+-\d{2}/.test(v)) months.push({label:v,col:c});
+  }
+  if(!months.length) return null;
+
+  const stop=findRowIdx(rows,['EBITDA'],0);          /* render down to EBITDA only */
+  const last=stop>=0?stop:rows.length-1;
+
+  const out=[]; let inGroup=false; let gid=0; let curGroup=null;
+  for(let i=hIdx+1;i<=last;i++){
+    const raw=rows[i][0];
+    const lab=cleanLabel(raw);
+    if(!lab) continue;
+    if(lab.endsWith('%')) continue;                   /* ratios recomputed below */
+    const vals=months.map(m=>parseNum(rows[i][m.col]));
+    const ytd=vals.reduce((x,y)=>x+y,0);
+    const low=lab.toLowerCase();
+
+    let type;
+    if(PL_SECTIONS.has(low))      { type='section'; inGroup=false; curGroup=null; }
+    else if(isStopRow(raw))       { type='total';   inGroup=false; curGroup=null; }
+    else if(isIndented(raw))      { type='group';   inGroup=true;  curGroup='fpg'+(gid++); }
+    else if(inGroup)              { type='sub'; }
+    else                          { type='sub'; }
+
+    if(type==='sub'&&vals.every(v=>v===0)) continue;  /* drop dormant line items */
+    out.push({label:lab,type,vals,ytd,group:type==='sub'?curGroup:(type==='group'?curGroup:null)});
+  }
+
+  /* Reconcile each group to its itemised lines. On this workbook the group
+     headers for January–March are pasted totals that do not foot to the line
+     items beneath them (April onward do), so rather than display itemisation
+     that silently fails to add up, the difference is surfaced as an explicit
+     residual line. Group totals stay the source of truth — they tie to
+     Total COGS. */
+  const withKids=new Set(out.filter(r=>r.type==='sub'&&r.group).map(r=>r.group));
+  out.forEach(r=>{ if(r.type==='group') r.hasKids=withKids.has(r.group); });
+
+  const nMon=months.length;
+  for(let i=out.length-1;i>=0;i--){
+    const g=out[i];
+    if(g.type!=='group'||!g.hasKids) continue;
+    const kids=out.filter(r=>r.type==='sub'&&r.group===g.group);
+    const resid=[]; let material=false;
+    for(let m=0;m<nMon;m++){
+      const d=g.vals[m]-kids.reduce((a,k)=>a+k.vals[m],0);
+      resid.push(d);
+      if(Math.abs(d)>2) material=true;
+    }
+    if(!material) continue;
+    const lastKid=out.lastIndexOf(kids[kids.length-1]);
+    out.splice(lastKid+1,0,{
+      label:'Not itemised on source sheet',
+      type:'sub', residual:true, group:g.group,
+      vals:resid, ytd:resid.reduce((a,b)=>a+b,0)
+    });
+    g.hasResidual=true;
+  }
+
+  /* computed margin rows, inserted after GM and after EBITDA */
+  const find=n=>out.find(r=>r.label.toLowerCase()===n);
+  const rev=find('total revenue'), gm=find('gm'), eb=find('ebitda');
+  const ratio=(num,den)=>({
+    label:'', type:'ratio',
+    vals:num.vals.map((v,i)=>den.vals[i]?v/den.vals[i]*100:0),
+    ytd:den.ytd?num.ytd/den.ytd*100:0
+  });
+  if(rev&&gm){ const r=ratio(gm,rev); r.label='GM %';     out.splice(out.indexOf(gm)+1,0,r); }
+  if(rev&&eb){ const r=ratio(eb,rev); r.label='EBITDA %'; out.splice(out.indexOf(eb)+1,0,r); }
+
+  return {months:months.map(m=>m.label),rows:out};
+}
+
+function renderFullPL(mode){
+  const D=DATA.fullPL;
+  const head=document.getElementById('fullpl-head');
+  const body=document.getElementById('fullpl-tbody');
+  if(!head||!body) return;
+  if(!D){ body.innerHTML='<tr><td class="table-placeholder">P&L could not be read from the workbook.</td></tr>'; return; }
+
+  const showAll = (mode==='full');
+  head.innerHTML='<th>Particulars</th>'+
+    D.months.map(m=>`<th class="col-num">${m}</th>`).join('')+
+    '<th class="col-num highlight-col">YTD</th>';
+
+  const rng=document.getElementById('fullpl-range');
+  if(rng) rng.textContent=`${D.months[0]} – ${D.months[D.months.length-1]} · YTD summed from ${D.months.length} months`;
+  const note=document.getElementById('fullpl-note');
+  const gaps=D.rows.filter(r=>r.type==='group'&&r.hasResidual).map(r=>r.label);
+  if(note) note.innerHTML=
+    (showAll?'All line items shown. Switch to Summary to collapse cost groups. '
+            :'Click any cost group to expand its constituent line items. ')+
+    (gaps.length?`<b>Note:</b> on the source sheet the group totals for `+
+       `${gaps.join(', ')} exceed the sum of their itemised lines in the earlier months. `+
+       `The difference is shown as \u201cNot itemised on source sheet\u201d so each group still foots.`
+     :'');
+
+  const num=v=>{
+    const cls=v<0?'col-num num-val negative':v>0?'col-num num-val':'col-num num-val text-muted';
+    return {cls,txt:fmtUSD(v)};
+  };
+  body.innerHTML=D.rows.map(r=>{
+    if(r.type==='section')
+      return `<tr class="row-header"><td colspan="${D.months.length+2}">${r.label}</td></tr>`;
+
+    if(r.type==='ratio'){
+      const cells=r.vals.map(v=>`<td class="col-num num-val${v<0?' negative':''}">${v.toFixed(1)}%</td>`).join('');
+      return `<tr class="row-ratio"><td class="pl-indent-1">${r.label}</td>${cells}`+
+             `<td class="col-num num-val highlight-col${r.ytd<0?' negative':''}">${r.ytd.toFixed(1)}%</td></tr>`;
+    }
+
+    const cells=r.vals.map(v=>{const n=num(v);return `<td class="${n.cls}">${n.txt}</td>`;}).join('');
+    const y=num(r.ytd);
+    const ytdCell=`<td class="${y.cls} highlight-col">${y.txt}</td>`;
+
+    if(r.type==='total'){
+      const grand=/^(ebitda|gm|total revenue)$/i.test(r.label);
+      return `<tr class="${grand?'row-grand':'row-subtotal'}"><td>${r.label}</td>${cells}${ytdCell}</tr>`;
+    }
+    if(r.type==='group'){
+      const open=r.hasKids&&showAll;
+      const caret=r.hasKids?`<span class="pl-caret">▸</span>`:'';
+      return `<tr class="${r.hasKids?'pl-expandable':''}${open?' open':''}"`+
+             `${r.hasKids?` onclick="toggleFullPLGroup('${r.group}',this)"`:''}>`+
+             `<td class="pl-indent-1">${caret}${r.label}</td>${cells}${ytdCell}</tr>`;
+    }
+    /* sub-line */
+    return `<tr class="pl-sub-row${r.residual?' pl-residual':''}" data-fpg="${r.group||''}" `+
+           `style="display:${showAll?'':'none'}"${r.residual?' title="Group total on the source sheet exceeds the sum of its itemised lines for these months."':''}>`+
+           `<td class="pl-indent-2">${r.label}</td>${cells}${ytdCell}</tr>`;
+  }).join('');
+}
+
+window.toggleFullPLGroup=function(gid,tr){
+  const open=tr.classList.toggle('open');
+  document.querySelectorAll(`tr.pl-sub-row[data-fpg="${gid}"]`)
+    .forEach(x=>{ x.style.display = open ? '' : 'none'; });
+};
+
+/* ════════════════════════════════════════
    NAVIGATION
 ════════════════════════════════════════ */
 let currentPage='executive';
@@ -1378,6 +1535,7 @@ function populateSelects(){
   }
 
   document.getElementById('pl-month-select')?.addEventListener('change',e=>renderPL(e.target.value));
+  document.getElementById('fullpl-detail-select')?.addEventListener('change',e=>renderFullPL(e.target.value));
   document.getElementById('exp-month-select')?.addEventListener('change',e=>renderExpenseAnalysis(e.target.value,document.getElementById('exp-entity-select')?.value));
   document.getElementById('exp-entity-select')?.addEventListener('change',e=>renderExpenseAnalysis(document.getElementById('exp-month-select')?.value,e.target.value));
   document.getElementById('bva-month-select')?.addEventListener('change',e=>renderBudgetVsActual(e.target.value));
@@ -1422,6 +1580,8 @@ async function init(){
     const latest=DATA.mis.months[DATA.mis.months.length-1];
     renderExecutive(latest);
     renderKeyMetrics();
+    DATA.fullPL=extractFullPL();
+    renderFullPL('summary');
     renderPL(latest);
     renderExpenseAnalysis(latest,'consolidated');
     const bvaFirst=document.getElementById('bva-month-select')?.value
